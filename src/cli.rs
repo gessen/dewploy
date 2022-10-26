@@ -33,6 +33,14 @@ pub struct Args {
     #[clap(long, short = 'r')]
     pub only_runner: bool,
 
+    /// Do not stop Stormcloud before deploying
+    #[clap(long)]
+    pub no_stop: bool,
+
+    /// Do not start Stormcloud after deploying
+    #[clap(long)]
+    pub no_start: bool,
+
     /// Stormcloud project root directory
     #[clap(long, short = 'C', value_hint = ValueHint::DirPath)]
     pub working_dir: Option<PathBuf>,

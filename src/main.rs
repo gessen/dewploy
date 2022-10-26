@@ -17,9 +17,15 @@ fn main() -> Result<()> {
     let only_daemon = args.only_daemon;
     let only_runner = args.only_runner;
     let no_strip = args.no_strip;
+    let no_stop = args.no_stop;
+    let no_start = args.no_start;
     let working_dir = parse_working_dir(&args);
 
     switch_to_working_dir(working_dir)?;
+
+    if !no_stop {
+        stop_stormcloud(ip)?;
+    }
 
     deploy_project(
         build_type,
@@ -30,6 +36,10 @@ fn main() -> Result<()> {
         only_runner,
         no_strip,
     )?;
+
+    if !no_start {
+        start_stormcloud(ip)?;
+    }
 
     Ok(())
 }
@@ -113,8 +123,6 @@ fn deploy_project(
     only_runner: bool,
     no_strip: bool,
 ) -> Result<()> {
-    stop_stormcloud(ip)?;
-
     if !only_runner {
         build_daemon(build_type, daemon_type, cross_build)?;
     }
@@ -150,6 +158,18 @@ fn stop_stormcloud(ip: Ipv4Addr) -> Result<()> {
     let status = command.status()?;
     if !status.success() {
         bail!("failed to stop stormcloud on {ip}");
+    }
+
+    Ok(())
+}
+
+fn start_stormcloud(ip: Ipv4Addr) -> Result<()> {
+    let mut command = create_start_command(ip);
+
+    pretty_print(&command);
+    let status = command.status()?;
+    if !status.success() {
+        bail!("failed to start stormcloud on {ip}");
     }
 
     Ok(())
@@ -344,6 +364,16 @@ fn create_stop_command(ip: Ipv4Addr) -> Command {
         .arg(format!("root@{}", ip))
         .arg("/a/sbin/akamai_run")
         .arg("stop")
+        .arg("stormcloud");
+    command
+}
+
+fn create_start_command(ip: Ipv4Addr) -> Command {
+    let mut command = Command::new("ssh");
+    command
+        .arg(format!("root@{}", ip))
+        .arg("/a/sbin/akamai_run")
+        .arg("start")
         .arg("stormcloud");
     command
 }
