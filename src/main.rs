@@ -178,8 +178,10 @@ fn start_stormcloud(ip: Ipv4Addr) -> Result<()> {
 fn build_daemon(build_type: BuildType, daemon_type: DaemonType, cross_build: bool) -> Result<()> {
     let mut command = create_build_command(cross_build);
 
-    command.arg("--features");
-    command.arg(daemon_type.to_string().to_lowercase());
+    if let DaemonType::Sync = daemon_type {
+        command.arg("--features");
+        command.arg(daemon_type.to_string().to_lowercase());
+    }
 
     let cwd = current_dir()?.into_os_string().into_string().unwrap();
 
