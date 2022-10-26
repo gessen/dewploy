@@ -178,6 +178,9 @@ fn start_stormcloud(ip: Ipv4Addr) -> Result<()> {
 fn build_daemon(build_type: BuildType, daemon_type: DaemonType, cross_build: bool) -> Result<()> {
     let mut command = create_build_command(cross_build);
 
+    command.arg("--package");
+    command.arg("stormcloud_daemon");
+
     if let DaemonType::Sync = daemon_type {
         command.arg("--features");
         command.arg(daemon_type.to_string().to_lowercase());
@@ -192,9 +195,6 @@ fn build_daemon(build_type: BuildType, daemon_type: DaemonType, cross_build: boo
 
     command.arg("--target-dir");
     command.arg(target_dir);
-
-    command.arg("--manifest-path");
-    command.arg("stormcloud_daemon/Cargo.toml");
 
     if let BuildType::Release = build_type {
         command.arg("--release");
