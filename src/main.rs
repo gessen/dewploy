@@ -3,7 +3,7 @@ mod cli;
 use crate::cli::{Args, BuildType, DaemonType};
 use anyhow::{bail, Result};
 use clap::Parser;
-use std::{env::current_dir, net::Ipv4Addr, path::PathBuf, process::Command};
+use std::{net::Ipv4Addr, path::PathBuf, process::Command};
 
 const TARGET_DIR: &str = "target-deploy";
 
@@ -186,11 +186,9 @@ fn build_daemon(build_type: BuildType, daemon_type: DaemonType, cross_build: boo
         command.arg(daemon_type.to_string().to_lowercase());
     }
 
-    let cwd = current_dir()?.into_os_string().into_string().unwrap();
-
     let target_dir = match daemon_type {
-        DaemonType::Async => format!("{}/{}", cwd, TARGET_DIR),
-        DaemonType::Sync => format!("{}/{}-sync", cwd, TARGET_DIR),
+        DaemonType::Async => TARGET_DIR.to_string(),
+        DaemonType::Sync => format!("{}-sync", TARGET_DIR),
     };
 
     command.arg("--target-dir");
@@ -219,14 +217,8 @@ fn build_runner(build_type: BuildType, cross_build: bool) -> Result<()> {
     command.arg("--package");
     command.arg("stormrunner_javascript");
 
-    let target_dir = format!(
-        "{}/{}",
-        current_dir()?.into_os_string().into_string().unwrap(),
-        TARGET_DIR
-    );
-
     command.arg("--target-dir");
-    command.arg(target_dir);
+    command.arg(TARGET_DIR);
 
     if let BuildType::Release = build_type {
         command.arg("--release");
