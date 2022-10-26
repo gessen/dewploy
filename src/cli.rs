@@ -1,5 +1,5 @@
-use clap::{ArgEnum, ArgGroup, Parser};
-use std::{fmt::Display, net::Ipv4Addr, str::FromStr};
+use clap::{ArgEnum, ArgGroup, Parser, ValueHint};
+use std::{fmt::Display, net::Ipv4Addr, str::FromStr, path::PathBuf};
 
 #[derive(Parser)]
 #[clap(author, version, about, long_about = None)]
@@ -32,6 +32,10 @@ pub struct Args {
     /// Build and upload only Stormrunner Javascript
     #[clap(long, short = 'r')]
     pub only_runner: bool,
+
+    /// Stormcloud project root directory
+    #[clap(long, short = 'C', value_hint = ValueHint::DirPath)]
+    pub working_dir: Option<PathBuf>,
 }
 
 #[derive(Clone, Copy, Debug, ArgEnum)]

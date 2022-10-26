@@ -3,7 +3,7 @@ mod cli;
 use crate::cli::{Args, BuildType, DaemonType};
 use anyhow::{bail, Result};
 use clap::Parser;
-use std::{env::current_dir, net::Ipv4Addr, process::Command};
+use std::{env::current_dir, net::Ipv4Addr, path::PathBuf, process::Command};
 
 const TARGET_DIR: &str = "target-deploy";
 
@@ -17,6 +17,9 @@ fn main() -> Result<()> {
     let only_daemon = args.only_daemon;
     let only_runner = args.only_runner;
     let no_strip = args.no_strip;
+    let working_dir = parse_working_dir(&args);
+
+    switch_to_working_dir(working_dir)?;
 
     deploy_project(
         build_type,
@@ -79,6 +82,26 @@ fn parse_cross_build(args: &Args) -> bool {
     }
 
     args.cross_build
+}
+
+fn parse_working_dir(args: &Args) -> Option<PathBuf> {
+    if let Some(working_dir) = &args.working_dir {
+        return Some(working_dir.clone());
+    }
+
+    if let Ok(working_dir_env) = std::env::var("STORMCLOUD_DIR") {
+        return Some(PathBuf::from(working_dir_env));
+    }
+
+    None
+}
+
+fn switch_to_working_dir(working_dir: Option<PathBuf>) -> Result<()> {
+    if let Some(working_dir) = working_dir {
+        std::env::set_current_dir(working_dir)?
+    }
+
+    Ok(())
 }
 
 fn deploy_project(
