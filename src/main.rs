@@ -19,6 +19,7 @@ fn main() -> Result<()> {
     let no_strip = args.no_strip;
     let no_stop = args.no_stop;
     let no_start = args.no_start;
+    let keep_logs = args.keep_logs;
     let working_dir = parse_working_dir(&args);
 
     switch_to_working_dir(working_dir)?;
@@ -36,6 +37,10 @@ fn main() -> Result<()> {
         only_runner,
         no_strip,
     )?;
+
+    if !keep_logs {
+        remove_logs(ip)?;
+    }
 
     if !no_start {
         start_stormcloud(ip)?;
@@ -172,6 +177,17 @@ fn start_stormcloud(ip: Ipv4Addr) -> Result<()> {
         bail!("failed to start stormcloud on {ip}");
     }
 
+    Ok(())
+}
+
+fn remove_logs(ip: Ipv4Addr) -> Result<()> {
+    let mut command = create_remove_logs_command(ip);
+
+    pretty_print(&command);
+    let status = command.status()?;
+    if !status.success() {
+        bail!("failed to remove logs on {ip}");
+    }
     Ok(())
 }
 
@@ -369,6 +385,16 @@ fn create_start_command(ip: Ipv4Addr) -> Command {
         .arg("/a/sbin/akamai_run")
         .arg("start")
         .arg("stormcloud");
+    command
+}
+
+fn create_remove_logs_command(ip: Ipv4Addr) -> Command {
+    let mut command = Command::new("ssh");
+    command
+        .arg(format!("root@{}", ip))
+        .arg("rm")
+        .arg("-rf")
+        .arg("/a/logs/stormcloud");
     command
 }
 

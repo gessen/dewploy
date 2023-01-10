@@ -41,6 +41,10 @@ pub struct Args {
     #[clap(long)]
     pub no_start: bool,
 
+    /// Do not remove older Stormcloud logs
+    #[clap(long)]
+    pub keep_logs: bool,
+
     /// Stormcloud project root directory
     #[clap(long, short = 'C', value_hint = ValueHint::DirPath)]
     pub working_dir: Option<PathBuf>,
