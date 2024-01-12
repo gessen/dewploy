@@ -311,13 +311,12 @@ fn upload_daemon(build_type: BuildType, daemon_type: DaemonType, ip: Ipv4Addr) -
     );
 
     let target_file = format!(
-        "root@{}:/a/stormcloud/{}/{}/stormcloud_daemon",
+        "root@{}:/a/stormcloud/{}/release/stormcloud_daemon",
         ip,
         match daemon_type {
             DaemonType::Async => "bin",
             DaemonType::Sync => "binsync",
         },
-        build_type.to_string().to_lowercase(),
     );
 
     let mut command = create_upload_command();
@@ -346,9 +345,8 @@ fn upload_runner(build_type: BuildType, ip: Ipv4Addr) -> Result<()> {
     );
 
     let target_file = format!(
-        "root@{}:/a/stormcloud/stormlets/{}/deployed/stormlet_javascript@0.0.0/stormrunner_javascript.0.0.0",
+        "root@{}:/a/stormcloud/stormlets/release/deployed/stormlet_javascript@0.0.0/stormrunner_javascript.0.0.0",
         ip,
-        build_type.to_string().to_lowercase(),
     );
 
     let mut command = create_upload_command();
