@@ -16,6 +16,7 @@ fn main() -> Result<()> {
     let cross_build = parse_cross_build(&args);
     let only_daemon = args.only_daemon;
     let only_runner = args.only_runner;
+    let with_cloudbuster = args.with_cloudbuster;
     let no_strip = args.no_strip;
     let no_stop = args.no_stop;
     let no_start = args.no_start;
@@ -35,6 +36,7 @@ fn main() -> Result<()> {
         cross_build,
         only_daemon,
         only_runner,
+        with_cloudbuster,
         no_strip,
     )?;
 
@@ -126,6 +128,7 @@ fn deploy_project(
     cross_build: bool,
     only_daemon: bool,
     only_runner: bool,
+    with_cloudbuster: bool,
     no_strip: bool,
 ) -> Result<()> {
     if !only_runner {
@@ -136,12 +139,19 @@ fn deploy_project(
         build_runner(build_type, cross_build)?;
     }
 
+    if with_cloudbuster {
+        build_cloudbuster(build_type, cross_build)?;
+    }
+
     if !no_strip {
         if !only_runner {
             strip_daemon(build_type, daemon_type)?;
         }
         if !only_daemon {
             strip_runner(build_type)?;
+        }
+        if with_cloudbuster {
+            strip_cloudbuster(build_type)?;
         }
     }
 
@@ -151,6 +161,10 @@ fn deploy_project(
 
     if !only_daemon {
         upload_runner(build_type, ip)?;
+    }
+
+    if with_cloudbuster {
+        upload_cloudbuster(build_type, ip)?;
     }
 
     Ok(())
@@ -252,6 +266,31 @@ fn build_runner(build_type: BuildType, cross_build: bool) -> Result<()> {
     Ok(())
 }
 
+fn build_cloudbuster(build_type: BuildType, cross_build: bool) -> Result<()> {
+    let mut command = create_build_command(cross_build);
+
+    command.arg("--package");
+    command.arg("cloudbuster");
+
+    command.arg("--target-dir");
+    command.arg(TARGET_DIR);
+
+    if let BuildType::Release = build_type {
+        command.arg("--release");
+    }
+
+    pretty_print(&command);
+    let status = command.status()?;
+    if !status.success() {
+        bail!(
+            "failed to build {} cloudbuster",
+            build_type.to_string().to_lowercase()
+        );
+    }
+
+    Ok(())
+}
+
 fn strip_daemon(build_type: BuildType, daemon_type: DaemonType) -> Result<()> {
     let target_file = format!(
         "{}/{}/stormcloud_daemon",
@@ -293,6 +332,28 @@ fn strip_runner(build_type: BuildType) -> Result<()> {
     if !status.success() {
         bail!(
             "failed to strip {} runner",
+            build_type.to_string().to_lowercase(),
+        )
+    }
+
+    Ok(())
+}
+
+fn strip_cloudbuster(build_type: BuildType) -> Result<()> {
+    let target_file = format!(
+        "{}/{}/cloudbuster",
+        TARGET_DIR,
+        build_type.to_string().to_lowercase()
+    );
+
+    let mut command = create_strip_command();
+    command.arg(target_file);
+
+    pretty_print(&command);
+    let status = command.status()?;
+    if !status.success() {
+        bail!(
+            "failed to strip {} cloudbuster",
             build_type.to_string().to_lowercase(),
         )
     }
@@ -358,6 +419,35 @@ fn upload_runner(build_type: BuildType, ip: Ipv4Addr) -> Result<()> {
     if !status.success() {
         bail!(
             "failed to upload {} runner to {}",
+            build_type.to_string().to_lowercase(),
+            ip
+        );
+    }
+
+    Ok(())
+}
+
+fn upload_cloudbuster(build_type: BuildType, ip: Ipv4Addr) -> Result<()> {
+    let source_file = format!(
+        "{}/{}/cloudbuster",
+        TARGET_DIR,
+        build_type.to_string().to_lowercase()
+    );
+
+    let target_file = format!(
+        "root@{}:/a/stormcloud/bin/cloudbuster",
+        ip,
+    );
+
+    let mut command = create_upload_command();
+    command.arg(source_file);
+    command.arg(target_file);
+
+    pretty_print(&command);
+    let status = command.status()?;
+    if !status.success() {
+        bail!(
+            "failed to upload {} cloudbuster to {}",
             build_type.to_string().to_lowercase(),
             ip
         );

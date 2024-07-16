@@ -33,6 +33,10 @@ pub struct Args {
     #[clap(long, short = 'r')]
     pub only_runner: bool,
 
+    /// Upload Cloudbuster
+    #[clap(long)]
+    pub with_cloudbuster: bool,
+
     /// Do not stop Stormcloud before deploying
     #[clap(long)]
     pub no_stop: bool,
