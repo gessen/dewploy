@@ -13,7 +13,6 @@ fn main() -> Result<()> {
     let daemon_type = parse_daemon_type(&args)?;
     let build_type = parse_build_type(&args)?;
     let ip = parse_ip(&args)?;
-    let cross_build = parse_cross_build(&args);
     let only_daemon = args.only_daemon;
     let only_runner = args.only_runner;
     let with_cloudbuster = args.with_cloudbuster;
@@ -33,7 +32,6 @@ fn main() -> Result<()> {
         build_type,
         daemon_type,
         ip,
-        cross_build,
         only_daemon,
         only_runner,
         with_cloudbuster,
@@ -93,14 +91,6 @@ fn parse_ip(args: &Args) -> Result<Ipv4Addr> {
     bail!("GHOST_IP env var must be defined or --ip must be supplied");
 }
 
-fn parse_cross_build(args: &Args) -> bool {
-    if std::env::var("STORMCLOUD_CROSS_BUILD").is_ok() {
-        return true;
-    }
-
-    args.cross_build
-}
-
 fn parse_working_dir(args: &Args) -> Option<PathBuf> {
     if let Some(working_dir) = &args.working_dir {
         return Some(working_dir.clone());
@@ -125,22 +115,21 @@ fn deploy_project(
     build_type: BuildType,
     daemon_type: DaemonType,
     ip: Ipv4Addr,
-    cross_build: bool,
     only_daemon: bool,
     only_runner: bool,
     with_cloudbuster: bool,
     no_strip: bool,
 ) -> Result<()> {
     if !only_runner {
-        build_daemon(build_type, daemon_type, cross_build)?;
+        build_daemon(build_type, daemon_type)?;
     }
 
     if !only_daemon {
-        build_runner(build_type, cross_build)?;
+        build_runner(build_type)?;
     }
 
     if with_cloudbuster {
-        build_cloudbuster(build_type, cross_build)?;
+        build_cloudbuster(build_type)?;
     }
 
     if !no_strip {
@@ -205,8 +194,8 @@ fn remove_logs(ip: Ipv4Addr) -> Result<()> {
     Ok(())
 }
 
-fn build_daemon(build_type: BuildType, daemon_type: DaemonType, cross_build: bool) -> Result<()> {
-    let mut command = create_build_command(cross_build);
+fn build_daemon(build_type: BuildType, daemon_type: DaemonType) -> Result<()> {
+    let mut command = create_build_command();
 
     command.arg("--package");
     command.arg("stormcloud_daemon");
@@ -241,8 +230,8 @@ fn build_daemon(build_type: BuildType, daemon_type: DaemonType, cross_build: boo
     Ok(())
 }
 
-fn build_runner(build_type: BuildType, cross_build: bool) -> Result<()> {
-    let mut command = create_build_command(cross_build);
+fn build_runner(build_type: BuildType) -> Result<()> {
+    let mut command = create_build_command();
 
     command.arg("--package");
     command.arg("stormrunner_javascript");
@@ -266,8 +255,8 @@ fn build_runner(build_type: BuildType, cross_build: bool) -> Result<()> {
     Ok(())
 }
 
-fn build_cloudbuster(build_type: BuildType, cross_build: bool) -> Result<()> {
-    let mut command = create_build_command(cross_build);
+fn build_cloudbuster(build_type: BuildType) -> Result<()> {
+    let mut command = create_build_command();
 
     command.arg("--package");
     command.arg("cloudbuster");
@@ -483,21 +472,15 @@ fn create_remove_logs_command(ip: Ipv4Addr) -> Command {
     command
 }
 
-fn create_build_command(cross_build: bool) -> Command {
-    let mut command = if cross_build {
-        Command::new("cross")
-    } else {
-        Command::new("cargo")
-    };
+fn create_build_command() -> Command {
+    let mut command = Command::new("cross");
     command.arg("build");
-
     command
 }
 
 fn create_strip_command() -> Command {
     let mut command = Command::new("strip");
     command.arg("--strip-unneeded");
-
     command
 }
 
@@ -508,7 +491,6 @@ fn create_upload_command() -> Command {
         .arg("--compress")
         .arg("--progress")
         .arg("--verbose");
-
     command
 }
 

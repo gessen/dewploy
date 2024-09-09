@@ -4,14 +4,6 @@ use std::{fmt, net::Ipv4Addr, path::PathBuf, str::FromStr};
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 pub struct Args {
-    /// Use cross to build Stormcloud project
-    #[arg(long, short)]
-    pub cross_build: bool,
-
-    /// Do not strip built binaries
-    #[arg(long)]
-    pub no_strip: bool,
-
     /// Type of the optimisations
     #[arg(long, short, value_enum, value_name = "TYPE")]
     pub build_type: Option<BuildType>,
@@ -47,6 +39,10 @@ pub struct Args {
     /// Do not remove older Stormcloud logs
     #[arg(long)]
     pub keep_logs: bool,
+
+    /// Do not strip built binaries
+    #[arg(long)]
+    pub no_strip: bool,
 
     /// Swap to this dir before building Stormcloud
     #[arg(long, short = 'C', value_hint = ValueHint::DirPath, value_name = "DIR")]
