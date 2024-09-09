@@ -19,7 +19,7 @@ fn main() -> Result<()> {
     let no_stop = args.no_stop;
     let no_start = args.no_start;
     let keep_logs = args.keep_logs;
-    let working_dir = parse_working_dir(&args);
+    let working_dir = args.working_dir;
 
     switch_to_working_dir(working_dir)?;
 
@@ -73,18 +73,6 @@ fn parse_ip(args: &Args) -> Result<Ipv4Addr> {
     }
 
     bail!("GHOST_IP env var must be defined or --ip must be supplied");
-}
-
-fn parse_working_dir(args: &Args) -> Option<PathBuf> {
-    if let Some(working_dir) = &args.working_dir {
-        return Some(working_dir.clone());
-    }
-
-    if let Ok(working_dir_env) = std::env::var("STORMCLOUD_DIR") {
-        return Some(PathBuf::from(working_dir_env));
-    }
-
-    None
 }
 
 fn switch_to_working_dir(working_dir: Option<PathBuf>) -> Result<()> {
