@@ -12,14 +12,17 @@ fn main() -> Result<()> {
 
     let build_type = parse_build_type(&args)?;
     let ip = parse_ip(&args)?;
-    let only_daemon = args.only_daemon;
-    let only_runner = args.only_runner;
-    let with_cloudbuster = args.with_cloudbuster;
-    let no_strip = args.no_strip;
-    let no_stop = args.no_stop;
-    let no_start = args.no_start;
-    let keep_logs = args.keep_logs;
-    let working_dir = args.working_dir;
+    let Args {
+        only_daemon,
+        only_runner,
+        with_cloudbuster,
+        no_stop,
+        no_start,
+        keep_logs,
+        no_strip,
+        working_dir,
+        ..
+    } = args;
 
     switch_to_working_dir(working_dir)?;
 
