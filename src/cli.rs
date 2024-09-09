@@ -1,66 +1,65 @@
-use clap::{ArgEnum, ArgGroup, Parser, ValueHint};
-use std::{fmt::Display, net::Ipv4Addr, str::FromStr, path::PathBuf};
+use clap::{Parser, ValueEnum, ValueHint};
+use std::{fmt, net::Ipv4Addr, path::PathBuf, str::FromStr};
 
 #[derive(Parser)]
-#[clap(author, version, about, long_about = None)]
-#[clap(group(ArgGroup::new("only").args(&["only-daemon", "only-runner"])))]
+#[command(version, about, long_about = None)]
 pub struct Args {
     /// Use cross to build Stormcloud project
-    #[clap(long, short)]
+    #[arg(long, short)]
     pub cross_build: bool,
 
     /// Do not strip built binaries
-    #[clap(long)]
+    #[arg(long)]
     pub no_strip: bool,
 
     /// Type of the optimisations
-    #[clap(long, short, arg_enum, value_name = "TYPE")]
+    #[arg(long, short, value_enum, value_name = "TYPE")]
     pub build_type: Option<BuildType>,
 
     /// Type of the daemon messaging
-    #[clap(long, short = 't', arg_enum, value_name = "TYPE")]
+    #[arg(long, short = 't', value_enum, value_name = "TYPE")]
     pub daemon_type: Option<DaemonType>,
 
     /// IP of the ghost
-    #[clap(long, short, parse(try_from_str), value_name = "IPv4")]
+    #[arg(long, short, value_name = "IPv4")]
     pub ip: Option<Ipv4Addr>,
 
     /// Build and upload only Stormcloud Daemon
-    #[clap(long, short = 'd')]
+    #[arg(long, short = 'd', conflicts_with = "only_runner")]
     pub only_daemon: bool,
 
     /// Build and upload only Stormrunner Javascript
-    #[clap(long, short = 'r')]
+    #[arg(long, short = 'r', conflicts_with = "only_daemon")]
     pub only_runner: bool,
 
-    /// Upload Cloudbuster
-    #[clap(long)]
+    /// Additionaly build and upload Cloudbuster
+    #[arg(long)]
     pub with_cloudbuster: bool,
 
     /// Do not stop Stormcloud before deploying
-    #[clap(long)]
+    #[arg(long)]
     pub no_stop: bool,
 
     /// Do not start Stormcloud after deploying
-    #[clap(long)]
+    #[arg(long)]
     pub no_start: bool,
 
     /// Do not remove older Stormcloud logs
-    #[clap(long)]
+    #[arg(long)]
     pub keep_logs: bool,
 
-    /// Stormcloud project root directory
-    #[clap(long, short = 'C', value_hint = ValueHint::DirPath)]
+    /// Swap to this dir before building Stormcloud
+    #[arg(long, short = 'C', value_hint = ValueHint::DirPath, value_name = "DIR")]
     pub working_dir: Option<PathBuf>,
 }
 
-#[derive(Clone, Copy, Debug, ArgEnum)]
+#[derive(Clone, Copy, Debug, ValueEnum)]
 pub enum BuildType {
     Debug,
     Release,
 }
 
-#[derive(Clone, Copy, Debug, ArgEnum)]
+#[derive(Clone, Copy, Debug, ValueEnum)]
 pub enum DaemonType {
     Async,
     Sync,
@@ -78,8 +77,8 @@ impl FromStr for BuildType {
     }
 }
 
-impl Display for BuildType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for BuildType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{self:?}")
     }
 }
@@ -96,8 +95,8 @@ impl FromStr for DaemonType {
     }
 }
 
-impl Display for DaemonType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for DaemonType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{self:?}")
     }
 }

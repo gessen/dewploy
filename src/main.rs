@@ -434,10 +434,7 @@ fn upload_cloudbuster(build_type: BuildType, ip: Ipv4Addr) -> Result<()> {
         build_type.to_string().to_lowercase()
     );
 
-    let target_file = format!(
-        "root@{}:/a/stormcloud/bin/cloudbuster",
-        ip,
-    );
+    let target_file = format!("root@{}:/a/stormcloud/bin/cloudbuster", ip,);
 
     let mut command = create_upload_command();
     command.arg(source_file);
