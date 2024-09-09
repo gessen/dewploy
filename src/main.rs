@@ -1,6 +1,6 @@
 mod cli;
 
-use crate::cli::{Args, BuildType, DaemonType};
+use crate::cli::{Args, BuildType};
 use anyhow::{bail, Result};
 use clap::Parser;
 use std::{net::Ipv4Addr, path::PathBuf, process::Command};
@@ -10,7 +10,6 @@ const TARGET_DIR: &str = "target-deploy";
 fn main() -> Result<()> {
     let args = Args::parse();
 
-    let daemon_type = parse_daemon_type(&args)?;
     let build_type = parse_build_type(&args)?;
     let ip = parse_ip(&args)?;
     let only_daemon = args.only_daemon;
@@ -30,7 +29,6 @@ fn main() -> Result<()> {
 
     deploy_project(
         build_type,
-        daemon_type,
         ip,
         only_daemon,
         only_runner,
@@ -47,20 +45,6 @@ fn main() -> Result<()> {
     }
 
     Ok(())
-}
-
-fn parse_daemon_type(args: &Args) -> Result<DaemonType> {
-    if let Some(daemon_type) = args.daemon_type {
-        return Ok(daemon_type);
-    }
-
-    if let Ok(daemon_type_env) = std::env::var("STORMCLOUD_DAEMON_TYPE") {
-        if let Ok(daemon_type) = daemon_type_env.parse() {
-            return Ok(daemon_type);
-        }
-    }
-
-    bail!("STORMCLOUD_DAEMON_TYPE env var must be defined or --daemon-type must be supplied");
 }
 
 fn parse_build_type(args: &Args) -> Result<BuildType> {
@@ -113,7 +97,6 @@ fn switch_to_working_dir(working_dir: Option<PathBuf>) -> Result<()> {
 
 fn deploy_project(
     build_type: BuildType,
-    daemon_type: DaemonType,
     ip: Ipv4Addr,
     only_daemon: bool,
     only_runner: bool,
@@ -121,7 +104,7 @@ fn deploy_project(
     no_strip: bool,
 ) -> Result<()> {
     if !only_runner {
-        build_daemon(build_type, daemon_type)?;
+        build_daemon(build_type)?;
     }
 
     if !only_daemon {
@@ -134,7 +117,7 @@ fn deploy_project(
 
     if !no_strip {
         if !only_runner {
-            strip_daemon(build_type, daemon_type)?;
+            strip_daemon(build_type)?;
         }
         if !only_daemon {
             strip_runner(build_type)?;
@@ -145,7 +128,7 @@ fn deploy_project(
     }
 
     if !only_runner {
-        upload_daemon(build_type, daemon_type, ip)?;
+        upload_daemon(build_type, ip)?;
     }
 
     if !only_daemon {
@@ -194,24 +177,14 @@ fn remove_logs(ip: Ipv4Addr) -> Result<()> {
     Ok(())
 }
 
-fn build_daemon(build_type: BuildType, daemon_type: DaemonType) -> Result<()> {
+fn build_daemon(build_type: BuildType) -> Result<()> {
     let mut command = create_build_command();
 
     command.arg("--package");
     command.arg("stormcloud_daemon");
 
-    if let DaemonType::Sync = daemon_type {
-        command.arg("--features");
-        command.arg(daemon_type.to_string().to_lowercase());
-    }
-
-    let target_dir = match daemon_type {
-        DaemonType::Async => TARGET_DIR.to_string(),
-        DaemonType::Sync => format!("{}-sync", TARGET_DIR),
-    };
-
     command.arg("--target-dir");
-    command.arg(target_dir);
+    command.arg(TARGET_DIR);
 
     if let BuildType::Release = build_type {
         command.arg("--release");
@@ -221,9 +194,8 @@ fn build_daemon(build_type: BuildType, daemon_type: DaemonType) -> Result<()> {
     let status = command.status()?;
     if !status.success() {
         bail!(
-            "failed to build {} {} daemon",
+            "failed to build {} daemon",
             build_type.to_string().to_lowercase(),
-            daemon_type.to_string().to_lowercase()
         );
     }
 
@@ -280,13 +252,10 @@ fn build_cloudbuster(build_type: BuildType) -> Result<()> {
     Ok(())
 }
 
-fn strip_daemon(build_type: BuildType, daemon_type: DaemonType) -> Result<()> {
+fn strip_daemon(build_type: BuildType) -> Result<()> {
     let target_file = format!(
         "{}/{}/stormcloud_daemon",
-        match daemon_type {
-            DaemonType::Async => TARGET_DIR.to_string(),
-            DaemonType::Sync => format!("{}-sync", TARGET_DIR),
-        },
+        TARGET_DIR,
         build_type.to_string().to_lowercase()
     );
 
@@ -297,9 +266,8 @@ fn strip_daemon(build_type: BuildType, daemon_type: DaemonType) -> Result<()> {
     let status = command.status()?;
     if !status.success() {
         bail!(
-            "failed to strip {} {} daemon",
+            "failed to strip {} daemon",
             build_type.to_string().to_lowercase(),
-            daemon_type.to_string().to_lowercase(),
         )
     }
 
@@ -350,24 +318,14 @@ fn strip_cloudbuster(build_type: BuildType) -> Result<()> {
     Ok(())
 }
 
-fn upload_daemon(build_type: BuildType, daemon_type: DaemonType, ip: Ipv4Addr) -> Result<()> {
+fn upload_daemon(build_type: BuildType, ip: Ipv4Addr) -> Result<()> {
     let source_file = format!(
         "{}/{}/stormcloud_daemon",
-        match daemon_type {
-            DaemonType::Async => TARGET_DIR.to_string(),
-            DaemonType::Sync => format!("{}-sync", TARGET_DIR),
-        },
+        TARGET_DIR,
         build_type.to_string().to_lowercase()
     );
 
-    let target_file = format!(
-        "root@{}:/a/stormcloud/{}/release/stormcloud_daemon",
-        ip,
-        match daemon_type {
-            DaemonType::Async => "bin",
-            DaemonType::Sync => "binsync",
-        },
-    );
+    let target_file = format!("root@{}:/a/stormcloud/bin/release/stormcloud_daemon", ip,);
 
     let mut command = create_upload_command();
     command.arg(source_file);
@@ -377,9 +335,8 @@ fn upload_daemon(build_type: BuildType, daemon_type: DaemonType, ip: Ipv4Addr) -
     let status = command.status()?;
     if !status.success() {
         bail!(
-            "failed to upload {} {} daemon to {}",
+            "failed to upload {} daemon to {}",
             build_type.to_string().to_lowercase(),
-            daemon_type.to_string().to_lowercase(),
             ip
         );
     }

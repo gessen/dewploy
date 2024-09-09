@@ -8,10 +8,6 @@ pub struct Args {
     #[arg(long, short, value_enum, value_name = "TYPE")]
     pub build_type: Option<BuildType>,
 
-    /// Type of the daemon messaging
-    #[arg(long, short = 't', value_enum, value_name = "TYPE")]
-    pub daemon_type: Option<DaemonType>,
-
     /// IP of the ghost
     #[arg(long, short, value_name = "IPv4")]
     pub ip: Option<Ipv4Addr>,
@@ -55,12 +51,6 @@ pub enum BuildType {
     Release,
 }
 
-#[derive(Clone, Copy, Debug, ValueEnum)]
-pub enum DaemonType {
-    Async,
-    Sync,
-}
-
 impl FromStr for BuildType {
     type Err = ();
 
@@ -74,24 +64,6 @@ impl FromStr for BuildType {
 }
 
 impl fmt::Display for BuildType {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{self:?}")
-    }
-}
-
-impl FromStr for DaemonType {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "async" => Ok(DaemonType::Async),
-            "sync" => Ok(DaemonType::Sync),
-            _ => Err(()),
-        }
-    }
-}
-
-impl fmt::Display for DaemonType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{self:?}")
     }
