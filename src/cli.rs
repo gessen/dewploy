@@ -49,6 +49,7 @@ pub struct Args {
 pub enum BuildType {
     Debug,
     Release,
+    FastRelease,
 }
 
 impl FromStr for BuildType {
@@ -58,6 +59,7 @@ impl FromStr for BuildType {
         match s {
             "debug" => Ok(BuildType::Debug),
             "release" => Ok(BuildType::Release),
+            "fast-release" => Ok(BuildType::FastRelease),
             _ => Err(()),
         }
     }
@@ -65,6 +67,9 @@ impl FromStr for BuildType {
 
 impl fmt::Display for BuildType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{self:?}")
+        match self {
+            BuildType::FastRelease => write!(f, "fast_release"),
+            _ => write!(f, "{self:?}"),
+        }
     }
 }

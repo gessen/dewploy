@@ -1,6 +1,6 @@
 [package]
 name = "dewploy"
-version = "0.8.2"
+version = "0.9.0"
 authors = ["Jacek Swierk jswierk@akamai.com"]
 edition = "2021"
 description = "A simple tool to build and deploy Stormcloud binaries"

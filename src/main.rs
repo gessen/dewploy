@@ -429,8 +429,14 @@ fn create_build_command(package: &str, build_type: BuildType) -> Command {
         .arg(TARGET_DIR)
         .arg("--package")
         .arg(package);
-    if let BuildType::Release = build_type {
-        command.arg("--release");
+    match build_type {
+        BuildType::Debug => {}
+        BuildType::Release => {
+            command.arg("--release");
+        }
+        BuildType::FastRelease => {
+            command.arg("--profile=fast_release");
+        }
     }
     command
 }
