@@ -3,7 +3,11 @@ mod cli;
 use crate::cli::{Args, BuildType};
 use anyhow::{bail, Result};
 use clap::Parser;
-use std::{net::Ipv4Addr, path::PathBuf, process::Command};
+use std::{
+    net::Ipv4Addr,
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 const TARGET_DIR: &str = "target-deploy";
 
@@ -135,8 +139,8 @@ fn deploy_project(
 
 fn stop_stormcloud(ip: Ipv4Addr) -> Result<()> {
     let mut command = create_stop_command(ip);
-
     pretty_print(&command);
+
     let status = command.status()?;
     if !status.success() {
         bail!("failed to stop stormcloud on {ip}");
@@ -147,8 +151,8 @@ fn stop_stormcloud(ip: Ipv4Addr) -> Result<()> {
 
 fn start_stormcloud(ip: Ipv4Addr) -> Result<()> {
     let mut command = create_start_command(ip);
-
     pretty_print(&command);
+
     let status = command.status()?;
     if !status.success() {
         bail!("failed to start stormcloud on {ip}");
@@ -159,8 +163,8 @@ fn start_stormcloud(ip: Ipv4Addr) -> Result<()> {
 
 fn remove_logs(ip: Ipv4Addr) -> Result<()> {
     let mut command = create_remove_logs_command(ip);
-
     pretty_print(&command);
+
     let status = command.status()?;
     if !status.success() {
         bail!("failed to remove logs on {ip}");
@@ -169,19 +173,9 @@ fn remove_logs(ip: Ipv4Addr) -> Result<()> {
 }
 
 fn build_daemon(build_type: BuildType) -> Result<()> {
-    let mut command = create_build_command();
-
-    command.arg("--package");
-    command.arg("stormcloud_daemon");
-
-    command.arg("--target-dir");
-    command.arg(TARGET_DIR);
-
-    if let BuildType::Release = build_type {
-        command.arg("--release");
-    }
-
+    let mut command = create_build_command("stormcloud_daemon", build_type);
     pretty_print(&command);
+
     let status = command.status()?;
     if !status.success() {
         bail!(
@@ -194,19 +188,9 @@ fn build_daemon(build_type: BuildType) -> Result<()> {
 }
 
 fn build_runner(build_type: BuildType) -> Result<()> {
-    let mut command = create_build_command();
-
-    command.arg("--package");
-    command.arg("stormrunner_javascript");
-
-    command.arg("--target-dir");
-    command.arg(TARGET_DIR);
-
-    if let BuildType::Release = build_type {
-        command.arg("--release");
-    }
-
+    let mut command = create_build_command("stormrunner_javascript", build_type);
     pretty_print(&command);
+
     let status = command.status()?;
     if !status.success() {
         bail!(
@@ -219,19 +203,9 @@ fn build_runner(build_type: BuildType) -> Result<()> {
 }
 
 fn build_cloudbuster(build_type: BuildType) -> Result<()> {
-    let mut command = create_build_command();
-
-    command.arg("--package");
-    command.arg("cloudbuster");
-
-    command.arg("--target-dir");
-    command.arg(TARGET_DIR);
-
-    if let BuildType::Release = build_type {
-        command.arg("--release");
-    }
-
+    let mut command = create_build_command("cloudbuster", build_type);
     pretty_print(&command);
+
     let status = command.status()?;
     if !status.success() {
         bail!(
@@ -244,20 +218,31 @@ fn build_cloudbuster(build_type: BuildType) -> Result<()> {
 }
 
 fn strip_daemon(build_type: BuildType) -> Result<()> {
-    let target_file = format!(
+    let target = PathBuf::from(format!(
         "{}/{}/stormcloud_daemon",
         TARGET_DIR,
         build_type.to_string().to_lowercase()
-    );
+    ));
+    let debug = PathBuf::from(format!("{}.debug", target.to_string_lossy()));
 
-    let mut command = create_strip_command();
-    command.arg(target_file);
-
+    let mut command = create_copy_debuginfo_command(&target, &debug);
     pretty_print(&command);
+
     let status = command.status()?;
     if !status.success() {
         bail!(
-            "failed to strip {} daemon",
+            "failed to copy debuginfo for {} daemon",
+            build_type.to_string().to_lowercase(),
+        )
+    }
+
+    let mut command = create_remove_debuginfo_command(&target, &debug);
+    pretty_print(&command);
+
+    let status = command.status()?;
+    if !status.success() {
+        bail!(
+            "failed to remove debuginfo for {} daemon",
             build_type.to_string().to_lowercase(),
         )
     }
@@ -266,20 +251,31 @@ fn strip_daemon(build_type: BuildType) -> Result<()> {
 }
 
 fn strip_runner(build_type: BuildType) -> Result<()> {
-    let target_file = format!(
+    let target = PathBuf::from(format!(
         "{}/{}/stormrunner_javascript",
         TARGET_DIR,
         build_type.to_string().to_lowercase()
-    );
+    ));
+    let debug = PathBuf::from(format!("{}.debug", target.to_string_lossy()));
 
-    let mut command = create_strip_command();
-    command.arg(target_file);
-
+    let mut command = create_copy_debuginfo_command(&target, &debug);
     pretty_print(&command);
+
     let status = command.status()?;
     if !status.success() {
         bail!(
-            "failed to strip {} runner",
+            "failed to copy debuginfo for {} runner",
+            build_type.to_string().to_lowercase(),
+        )
+    }
+
+    let mut command = create_remove_debuginfo_command(&target, &debug);
+    pretty_print(&command);
+
+    let status = command.status()?;
+    if !status.success() {
+        bail!(
+            "failed to remove debuginfo for {} runner",
             build_type.to_string().to_lowercase(),
         )
     }
@@ -288,20 +284,31 @@ fn strip_runner(build_type: BuildType) -> Result<()> {
 }
 
 fn strip_cloudbuster(build_type: BuildType) -> Result<()> {
-    let target_file = format!(
+    let target = PathBuf::from(format!(
         "{}/{}/cloudbuster",
         TARGET_DIR,
         build_type.to_string().to_lowercase()
-    );
+    ));
+    let debug = PathBuf::from(format!("{}.debug", target.to_string_lossy()));
 
-    let mut command = create_strip_command();
-    command.arg(target_file);
-
+    let mut command = create_copy_debuginfo_command(&target, &debug);
     pretty_print(&command);
+
     let status = command.status()?;
     if !status.success() {
         bail!(
-            "failed to strip {} cloudbuster",
+            "failed to copy debuginfo for {} cloudbuster",
+            build_type.to_string().to_lowercase(),
+        )
+    }
+
+    let mut command = create_remove_debuginfo_command(&target, &debug);
+    pretty_print(&command);
+
+    let status = command.status()?;
+    if !status.success() {
+        bail!(
+            "failed to remove debuginfo for {} cloudbuster",
             build_type.to_string().to_lowercase(),
         )
     }
@@ -310,19 +317,19 @@ fn strip_cloudbuster(build_type: BuildType) -> Result<()> {
 }
 
 fn upload_daemon(build_type: BuildType, ip: Ipv4Addr) -> Result<()> {
-    let source_file = format!(
+    let source = PathBuf::from(format!(
         "{}/{}/stormcloud_daemon",
         TARGET_DIR,
         build_type.to_string().to_lowercase()
-    );
+    ));
+    let target = PathBuf::from(format!(
+        "root@{}:/a/stormcloud/bin/release/stormcloud_daemon",
+        ip
+    ));
 
-    let target_file = format!("root@{}:/a/stormcloud/bin/release/stormcloud_daemon", ip,);
-
-    let mut command = create_upload_command();
-    command.arg(source_file);
-    command.arg(target_file);
-
+    let mut command = create_upload_command(&source, &target);
     pretty_print(&command);
+
     let status = command.status()?;
     if !status.success() {
         bail!(
@@ -336,22 +343,19 @@ fn upload_daemon(build_type: BuildType, ip: Ipv4Addr) -> Result<()> {
 }
 
 fn upload_runner(build_type: BuildType, ip: Ipv4Addr) -> Result<()> {
-    let source_file = format!(
+    let source = PathBuf::from(format!(
         "{}/{}/stormrunner_javascript",
         TARGET_DIR,
         build_type.to_string().to_lowercase()
-    );
-
-    let target_file = format!(
+    ));
+    let target = PathBuf::from(format!(
         "root@{}:/a/stormcloud/stormlets/release/deployed/stormlet_javascript@0.0.0/stormrunner_javascript.0.0.0",
         ip,
-    );
+    ));
 
-    let mut command = create_upload_command();
-    command.arg(source_file);
-    command.arg(target_file);
-
+    let mut command = create_upload_command(&source, &target);
     pretty_print(&command);
+
     let status = command.status()?;
     if !status.success() {
         bail!(
@@ -365,19 +369,16 @@ fn upload_runner(build_type: BuildType, ip: Ipv4Addr) -> Result<()> {
 }
 
 fn upload_cloudbuster(build_type: BuildType, ip: Ipv4Addr) -> Result<()> {
-    let source_file = format!(
+    let source = PathBuf::from(format!(
         "{}/{}/cloudbuster",
         TARGET_DIR,
         build_type.to_string().to_lowercase()
-    );
+    ));
+    let target = PathBuf::from(format!("root@{}:/a/stormcloud/bin/cloudbuster", ip));
 
-    let target_file = format!("root@{}:/a/stormcloud/bin/cloudbuster", ip,);
-
-    let mut command = create_upload_command();
-    command.arg(source_file);
-    command.arg(target_file);
-
+    let mut command = create_upload_command(&source, &target);
     pretty_print(&command);
+
     let status = command.status()?;
     if !status.success() {
         bail!(
@@ -420,25 +421,49 @@ fn create_remove_logs_command(ip: Ipv4Addr) -> Command {
     command
 }
 
-fn create_build_command() -> Command {
+fn create_build_command(package: &str, build_type: BuildType) -> Command {
     let mut command = Command::new("cross");
-    command.arg("build");
+    command
+        .arg("build")
+        .arg("--target-dir")
+        .arg(TARGET_DIR)
+        .arg("--package")
+        .arg(package);
+    if let BuildType::Release = build_type {
+        command.arg("--release");
+    }
     command
 }
 
-fn create_strip_command() -> Command {
-    let mut command = Command::new("strip");
-    command.arg("--strip-unneeded");
+fn create_copy_debuginfo_command(target: &Path, debug: &Path) -> Command {
+    let mut command = Command::new("objcopy");
+    command.arg("--only-keep-debug").arg(target).arg(debug);
     command
 }
 
-fn create_upload_command() -> Command {
+fn create_remove_debuginfo_command(target: &Path, debug: &Path) -> Command {
+    let mut command = Command::new("objcopy");
+    command
+        .arg("--strip-debug")
+        .arg("--strip-unneeded")
+        .arg("--remove-section")
+        .arg(".gnu_debuglink")
+        .arg("--add-gnu-debuglink")
+        .arg(debug.file_name().unwrap_or_default())
+        .arg(target.file_name().unwrap_or_default());
+    command.current_dir(target.parent().unwrap_or(Path::new(TARGET_DIR)));
+    command
+}
+
+fn create_upload_command(source: &Path, target: &Path) -> Command {
     let mut command = Command::new("rsync");
     command
         .arg("--human-readable")
         .arg("--compress")
         .arg("--progress")
-        .arg("--verbose");
+        .arg("--verbose")
+        .arg(source)
+        .arg(target);
     command
 }
 
