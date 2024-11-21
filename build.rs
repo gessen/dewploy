@@ -1,8 +1,5 @@
 use clap::CommandFactory;
-use clap_complete::{
-    generate_to,
-    shells::{Bash, Zsh},
-};
+use clap_complete::{generate_to, shells::Shell};
 use std::env;
 use std::io::Error;
 
@@ -15,8 +12,9 @@ fn main() -> Result<(), Error> {
     };
 
     let mut cmd = Args::command();
-    generate_to(Bash, &mut cmd, "dewploy", out_dir.clone())?;
-    generate_to(Zsh, &mut cmd, "dewploy", out_dir)?;
+    for &shell in Shell::value_variants() {
+        generate_to(shell, &mut cmd, env!("CARGO_PKG_NAME"), out_dir.clone())?;
+    }
 
     Ok(())
 }
