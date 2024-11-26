@@ -23,7 +23,7 @@ fn main() -> Result<()> {
         no_stop,
         no_start,
         keep_logs,
-        no_strip,
+        strip,
         working_dir,
         ..
     } = args;
@@ -40,7 +40,7 @@ fn main() -> Result<()> {
         only_daemon,
         only_runner,
         with_cloudbuster,
-        no_strip,
+        strip,
     )?;
 
     if !keep_logs {
@@ -96,7 +96,7 @@ fn deploy_project(
     only_daemon: bool,
     only_runner: bool,
     with_cloudbuster: bool,
-    no_strip: bool,
+    strip: bool,
 ) -> Result<()> {
     if !only_runner {
         build_daemon(build_type)?;
@@ -110,7 +110,7 @@ fn deploy_project(
         build_cloudbuster(build_type)?;
     }
 
-    if !no_strip {
+    if strip {
         if !only_runner {
             strip_daemon(build_type)?;
         }
@@ -223,7 +223,7 @@ fn strip_daemon(build_type: BuildType) -> Result<()> {
         TARGET_DIR,
         build_type.to_string().to_lowercase()
     ));
-    let debug = PathBuf::from(format!("{}.debug", target.to_string_lossy()));
+    let debug = PathBuf::from(format!("{}.dbg", target.to_string_lossy()));
 
     let mut command = create_copy_debuginfo_command(&target, &debug);
     pretty_print(&command);
@@ -256,7 +256,7 @@ fn strip_runner(build_type: BuildType) -> Result<()> {
         TARGET_DIR,
         build_type.to_string().to_lowercase()
     ));
-    let debug = PathBuf::from(format!("{}.debug", target.to_string_lossy()));
+    let debug = PathBuf::from(format!("{}.dbg", target.to_string_lossy()));
 
     let mut command = create_copy_debuginfo_command(&target, &debug);
     pretty_print(&command);
@@ -289,7 +289,7 @@ fn strip_cloudbuster(build_type: BuildType) -> Result<()> {
         TARGET_DIR,
         build_type.to_string().to_lowercase()
     ));
-    let debug = PathBuf::from(format!("{}.debug", target.to_string_lossy()));
+    let debug = PathBuf::from(format!("{}.dbg", target.to_string_lossy()));
 
     let mut command = create_copy_debuginfo_command(&target, &debug);
     pretty_print(&command);
@@ -450,7 +450,6 @@ fn create_copy_debuginfo_command(target: &Path, debug: &Path) -> Command {
 fn create_remove_debuginfo_command(target: &Path, debug: &Path) -> Command {
     let mut command = Command::new("objcopy");
     command
-        .arg("--strip-debug")
         .arg("--strip-unneeded")
         .arg("--remove-section")
         .arg(".gnu_debuglink")

@@ -36,9 +36,9 @@ pub struct Args {
     #[arg(long)]
     pub keep_logs: bool,
 
-    /// Do not strip built binaries
+    /// Strip built binaries
     #[arg(long)]
-    pub no_strip: bool,
+    pub strip: bool,
 
     /// Swap to this dir before building Stormcloud
     #[arg(long, short = 'C', value_hint = ValueHint::DirPath, value_name = "DIR")]
